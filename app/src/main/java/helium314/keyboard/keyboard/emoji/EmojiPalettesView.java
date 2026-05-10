@@ -864,7 +864,9 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         getRecentsKeyboard().addKeyFirst(key);
-        mPager.getAdapter().notifyItemChanged(mEmojiCategory.getRecentTabId());
+        if (mPager != null && mPager.getAdapter() != null) {
+            mPager.getAdapter().notifyItemChanged(mEmojiCategory.getRecentTabId());
+        }
     }
 
     public void addRecentKey(final String emoji) {
@@ -878,7 +880,9 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         getRecentsKeyboard().addStringKeyFirst(emoji);
-        mPager.getAdapter().notifyItemChanged(mEmojiCategory.getRecentTabId());
+        if (mPager != null && mPager.getAdapter() != null) {
+            mPager.getAdapter().notifyItemChanged(mEmojiCategory.getRecentTabId());
+        }
     }
 
     private void setupSidePadding() {
