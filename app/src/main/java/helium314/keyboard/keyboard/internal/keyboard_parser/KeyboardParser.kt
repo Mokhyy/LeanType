@@ -60,6 +60,12 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
             else -> LayoutType.MAIN
         }
         val baseKeys = LayoutParser.parseLayout(layoutType, params, context)
+
+        if (!params.mId.mNumberRowEnabled && params.mId.mNumberRowInSymbols && params.mId.isAlphaOrSymbolKeyboard && !params.mId.isAlphabetKeyboard) {
+            params.mDefaultRowHeight = 1f / (KeyboardParams.DEFAULT_KEYBOARD_ROWS + 1f)
+            params.mDefaultAbsoluteRowHeight = (params.mDefaultRowHeight * params.mBaseHeight).toInt()
+        }
+
         val keysInRows = createRows(baseKeys)
         val heightRescale: Float
         if (params.mId.isEmojiClipBottomRow) {
@@ -98,7 +104,8 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
         addNumberRowOrPopupKeys(baseKeys, numberRow)
         if (params.mId.isAlphabetKeyboard)
             addSymbolPopupKeys(baseKeys)
-        if (params.mId.isAlphaOrSymbolKeyboard && params.mId.mNumberRowEnabled) {
+        if (params.mId.isAlphaOrSymbolKeyboard && (params.mId.mNumberRowEnabled
+                || (!params.mId.isAlphabetKeyboard && params.mId.mNumberRowInSymbols))) {
             val newLabelFlags = defaultLabelFlags or
                     if (Settings.getValues().mShowNumberRowHints) 0 else Key.LABEL_FLAGS_DISABLE_HINT_LABEL
             baseKeys.add(0, numberRow.mapTo(mutableListOf()) { it.copy(newLabelFlags = newLabelFlags) })
@@ -264,18 +271,7 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
     }
 
     private fun addNumberRowOrPopupKeys(baseKeys: MutableList<MutableList<KeyData>>, numberRow: MutableList<KeyData>) {
-        if (!params.mId.mNumberRowEnabled && params.mId.mNumberRowInSymbols && params.mId.mElementId == KeyboardId.ELEMENT_SYMBOLS) {
-            // replace first symbols row with number row, but use the labels as popupKeys
-            val numberRowCopy = numberRow.toMutableList()
-            numberRowCopy.forEachIndexed { index, keyData ->
-                val symbolKey = baseKeys[0].getOrNull(index) ?: return@forEachIndexed
-                val symbols = mutableListOf<String>()
-                symbolKey.label.takeIf { it.isNotEmpty() }?.let { symbols.add(it) }
-                symbolKey.popup.getPopupKeyLabels(params)?.let { symbols.addAll(it) }
-                if (symbols.isNotEmpty()) keyData.popup.symbols = symbols
-            }
-            baseKeys[0] = numberRowCopy
-        } else if (!params.mId.mNumberRowEnabled && params.mId.isAlphabetKeyboard && !hasBuiltInNumbers()) {
+        if (!params.mId.mNumberRowEnabled && params.mId.isAlphabetKeyboard && !hasBuiltInNumbers()) {
             if (baseKeys[0].any { it.popup.main != null || !it.popup.relevant.isNullOrEmpty() } // first row of baseKeys has any layout popup key
                 && params.mPopupKeyLabelSources.let {
                     val layout = it.indexOf(POPUP_KEYS_LAYOUT)
